@@ -1,0 +1,21 @@
+{
+  "name": "chain-ops-portal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm -w server run dev",
+    "dev:web": "npm -w web run dev",
+    "seed": "npm -w server run seed",
+    "build": "npm -w web run build",
+    "test": "node web/test/lanes.test.mjs && npm -w server run test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

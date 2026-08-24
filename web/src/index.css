@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Warm-premium palette. Cream canvas, deep-green accent, ochre and clay for
+  status. Colour is reserved for booking state — chrome stays neutral so a
+  full diary still reads at a glance.
+*/
+:root {
+  --canvas: #faf7f2;
+  --surface: #fffdfa;
+  --raised: #ffffff;
+  --sunken: #f3eee5;
+  --line: #e6ded1;
+  --line-strong: #d2c5b2;
+  --ink: #1c1a17;
+  --ink-soft: #5f574b;
+  --ink-faint: #8d8375;
+
+  --accent: #1f3d2e;
+  --accent-hover: #17301f;
+  --accent-soft: #e6eee8;
+  --accent-ink: #f6f2ea;
+
+  --gold: #9a7430;
+  --gold-soft: #f6ecd9;
+  --clay: #9c4227;
+  --clay-soft: #f9e7e0;
+  --steel: #3a5570;
+  --steel-soft: #e7eef5;
+
+  /* Attention flags. Deliberately louder than any status colour. */
+  --flag-high: #de3f12;
+  --flag-high-soft: #fde3da;
+  --flag-vip: #6d34ad;
+  --flag-vip-soft: #efe6fa;
+
+  --ring: #1f3d2e;
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: #16150f;
+  --surface: #1d1c16;
+  --raised: #24231b;
+  --sunken: #121109;
+  --line: #33301f;
+  --line-strong: #4a4530;
+  --ink: #f2ece0;
+  --ink-soft: #b6ab97;
+  --ink-faint: #8a8070;
+
+  --accent: #7fb495;
+  --accent-hover: #94c4a8;
+  --accent-soft: #223a2c;
+  --accent-ink: #10201a;
+
+  --gold: #d8ab5c;
+  --gold-soft: #3a2f18;
+  --clay: #d98266;
+  --clay-soft: #3b241c;
+  --steel: #8fb0ce;
+  --steel-soft: #1f2c39;
+
+  --flag-high: #f2532a;
+  --flag-high-soft: #431a10;
+  --flag-vip: #9a6ae0;
+  --flag-vip-soft: #2a1c3d;
+
+  --ring: #7fb495;
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--line);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-feature-settings: 'cv05', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard focus stays visible everywhere; pointer focus does not shout. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@layer components {
+  .h-display {
+    @apply font-display tracking-[-0.01em] text-ink;
+    font-variation-settings: 'SOFT' 0, 'WONK' 0;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-surface shadow-card;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .hairline {
+    @apply border-b border-line;
+  }
+}
+
+/* Thin, unobtrusive scrollbars — the diary is scrolled all day. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* While a booking is being dragged nothing else should highlight or select. */
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
