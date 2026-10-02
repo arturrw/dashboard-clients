@@ -13,9 +13,14 @@
     "dev:web": "npm -w web run dev",
     "seed": "npm -w server run seed",
     "build": "npm -w web run build",
-    "test": "node web/test/lanes.test.mjs && npm -w server run test"
+    "test": "node web/test/lanes.test.mjs && npm -w server run test",
+    "test:e2e": "playwright test",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docs:screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^9.1.2"
   }
 }
