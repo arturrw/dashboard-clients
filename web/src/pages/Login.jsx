@@ -7,7 +7,7 @@ import { useSession } from '@/lib/session'
 import { useI18n } from '@/i18n'
 import { get, store } from '@/lib/api'
 import { LANGUAGES } from '@/i18n/dictionary'
-import { cn, initials } from '@/lib/utils'
+import { cn, initials, shortName } from '@/lib/utils'
 
 export default function Login() {
   const { signIn } = useSession()
@@ -123,7 +123,7 @@ export default function Login() {
               </p>
               <div className="mt-2 flex items-center gap-2.5">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-medium text-accent-ink">
-                  {initials(device.location_name || device.display_name)}
+                  {initials(device.location_name ? shortName(device.location_name) : device.display_name)}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-ink">
@@ -160,7 +160,7 @@ export default function Login() {
                       className="flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-medium text-white"
                       style={{ background: a.accent || 'var(--accent)' }}
                     >
-                      {a.role === 'owner' ? <Building2 className="size-4" /> : initials(a.location_name)}
+                      {a.role === 'owner' ? <Building2 className="size-4" /> : initials(shortName(a.location_name))}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-ink">
