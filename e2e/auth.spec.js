@@ -1,5 +1,7 @@
 import { test, expect, login } from './fixtures.js'
 
+const VENUE_ACCOUNT = 'centrs'
+
 test.describe('sign-in and device binding', () => {
   test('lists venue accounts on an unbound terminal', async ({ page }) => {
     await page.goto('/')
@@ -15,7 +17,7 @@ test.describe('sign-in and device binding', () => {
     await page.goto('/')
     await page.getByRole('button', { name: /Rīga Centrs/ }).click()
     await expect(page.getByLabel('Account')).toHaveValue('centrs')
-    await page.getByLabel('Password').fill('wrong')
+    await page.getByLabel('Password').fill(`not-${VENUE_ACCOUNT}`)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page.getByText('Wrong account or password')).toBeVisible()
     await expect(page.getByLabel('Password')).toHaveValue('')
@@ -33,7 +35,8 @@ test.describe('sign-in and device binding', () => {
 
     await expect(page.getByText('This computer is bound to')).toBeVisible()
     await expect(page.getByLabel('Account')).toHaveCount(0)
-    await page.getByLabel('Password').fill('centrs')
+    // Bound terminal: only the password is asked for (demo password = account name).
+    await page.getByLabel('Password').fill(VENUE_ACCOUNT)
     await page.getByRole('button', { name: 'Sign in' }).click()
     await expect(page).toHaveURL(/\/calendar$/)
 

@@ -28,18 +28,14 @@ export const test = base.extend({
 
 export { expect }
 
-export const ACCOUNTS = {
-  owner: { username: 'owner', password: 'owner', venue: null },
-  centrs: { username: 'centrs', password: 'centrs', venue: 'Forno · Rīga Centrs' },
-  purvciems: { username: 'purvciems', password: 'purvciems', venue: 'Forno · Purvciems' }
-}
-
-/** Signs in through the real form, picking the account from the list. */
-export async function login(page, who = 'centrs') {
-  const acc = ACCOUNTS[who]
+/**
+ * Signs in through the real form. The seeded demo accounts (owner, centrs,
+ * purvciems, jurmala) use the account name as the password — see seed.js.
+ */
+export async function login(page, username = 'centrs') {
   await page.goto('/')
-  await page.getByLabel('Account').fill(acc.username)
-  await page.getByLabel('Password').fill(acc.password)
+  await page.getByLabel('Account').fill(username)
+  await page.getByLabel('Password').fill(username)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('navigation', { name: 'Main' }).first()).toBeVisible()
 }
