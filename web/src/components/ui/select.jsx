@@ -2,14 +2,16 @@ import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useFieldId } from './field'
 
 export const Select = SelectPrimitive.Root
 export const SelectValue = SelectPrimitive.Value
 export const SelectGroup = SelectPrimitive.Group
 
-export const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => (
+export const SelectTrigger = React.forwardRef(({ className, children, id, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
+    id={useFieldId(id)}
     className={cn(
       'flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink transition-colors hover:bg-sunken data-[placeholder]:text-ink-faint [&>span]:truncate',
       className

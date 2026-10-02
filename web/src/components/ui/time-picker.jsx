@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { cn, pad, hhmm, minutesFromHHMM } from '@/lib/utils'
 import { useI18n } from '@/i18n'
+import { useFieldId } from './field'
 
 const FACE = 232
 const CENTER = FACE / 2
@@ -35,8 +36,9 @@ const polar = (idx, radius, perTurn = 12) => {
  * or drag anywhere on the face — the hour ring hands over to the minute ring
  * automatically.
  */
-export function TimeField({ value, onChange, minuteStep = 5, disabled, className, id }) {
+export function TimeField({ value, onChange, minuteStep = 5, disabled, className, id: idProp }) {
   const { t } = useI18n()
+  const id = useFieldId(idProp)
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState('hour')
   const [dragging, setDragging] = useState(false)
