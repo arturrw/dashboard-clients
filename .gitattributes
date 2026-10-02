@@ -1,0 +1,2 @@
+*.sh text eol=lf
+web/nginx.conf text eol=lf

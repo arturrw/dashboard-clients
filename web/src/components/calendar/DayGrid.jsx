@@ -47,6 +47,13 @@ export default function DayGrid({
   const blockGestureAt = useRef(0)
 
   const [drag, setDrag] = useState(null)
+  /**
+   * The live drag, readable synchronously from the window listeners. Pointer
+   * up must act on the latest position and fire the page callbacks exactly
+   * once — doing that inside a setState updater runs it twice under
+   * StrictMode and updates the page while DayGrid is rendering.
+   */
+  const dragRef = useRef(null)
   const [hover, setHover] = useState(null)
   const [hoverSlot, setHoverSlot] = useState(null)
 
@@ -74,7 +81,7 @@ export default function DayGrid({
       document.body.classList.add('is-dragging')
       blockGestureAt.current = Date.now()
       setHover(null)
-      setDrag({
+      dragRef.current = {
         item,
         kind, // 'booking' | 'break'
         mode, // 'move' | 'resize'
@@ -85,7 +92,8 @@ export default function DayGrid({
         startMin: item.start_min,
         endMin: item.end_min,
         moved: false
-      })
+      }
+      setDrag(dragRef.current)
       event.currentTarget.setPointerCapture?.(event.pointerId)
     },
     [resources]
@@ -95,8 +103,8 @@ export default function DayGrid({
     if (!drag) return
 
     const onMove = (e) => {
-      setDrag((d) => {
-        if (!d) return d
+      const d = dragRef.current
+      if (d) {
         const dyMin = (e.clientY - d.originY) / PX_PER_MIN
         const duration = d.item.end_min - d.item.start_min
 
@@ -118,8 +126,9 @@ export default function DayGrid({
         }
 
         const moved = startMin !== d.item.start_min || endMin !== d.item.end_min || resourceId !== d.item.resource_id
-        return { ...d, startMin, endMin, resourceId, moved }
-      })
+        dragRef.current = { ...d, startMin, endMin, resourceId, moved }
+        setDrag(dragRef.current)
+      }
 
       // Auto-scroll when dragging near the edges of the viewport.
       const el = scrollRef.current
@@ -135,24 +144,25 @@ export default function DayGrid({
     const onUp = () => {
       document.body.classList.remove('is-dragging')
       blockGestureAt.current = Date.now()
-      setDrag((d) => {
-        if (!d) return null
-        if (d.moved) {
-          onProposeMove({
-            kind: d.kind,
-            item: d.item,
-            next: { resource_id: d.resourceId, start_min: d.startMin, end_min: d.endMin, day }
-          })
-        } else if (d.kind === 'booking') {
-          onOpenBooking(d.item)
-        }
-        return null
-      })
+      const d = dragRef.current
+      dragRef.current = null
+      setDrag(null)
+      if (!d) return
+      if (d.moved) {
+        onProposeMove({
+          kind: d.kind,
+          item: d.item,
+          next: { resource_id: d.resourceId, start_min: d.startMin, end_min: d.endMin, day }
+        })
+      } else if (d.kind === 'booking') {
+        onOpenBooking(d.item)
+      }
     }
 
     const onKey = (e) => {
       if (e.key !== 'Escape') return
       document.body.classList.remove('is-dragging')
+      dragRef.current = null
       setDrag(null)
     }
 

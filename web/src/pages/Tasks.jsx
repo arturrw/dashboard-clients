@@ -31,6 +31,7 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState(null)
   const [drag, setDrag] = useState(null)
+  const dragRef = useRef(null)
 
   const columnRefs = useRef(new Map())
 
@@ -82,7 +83,7 @@ export default function Tasks() {
     if (event.button !== 0 || (event.pointerType !== 'mouse' && event.pointerType !== 'pen')) return
     if (event.target.closest('[data-no-drag]')) return
     const rect = event.currentTarget.getBoundingClientRect()
-    setDrag({
+    dragRef.current = {
       task,
       width: rect.width,
       offsetX: event.clientX - rect.left,
@@ -93,42 +94,45 @@ export default function Tasks() {
       y: event.clientY,
       moved: false,
       over: task.status
-    })
+    }
+    setDrag(dragRef.current)
   }
 
   useEffect(() => {
     if (!drag) return
 
     const onMove = (e) => {
-      setDrag((d) => {
-        if (!d) return d
-        const far =
-          Math.abs(e.clientX - d.originX) > DRAG_THRESHOLD || Math.abs(e.clientY - d.originY) > DRAG_THRESHOLD
-        const moved = d.moved || far
-        if (moved && !d.moved) document.body.classList.add('is-dragging')
+      const d = dragRef.current
+      if (!d) return
+      const far =
+        Math.abs(e.clientX - d.originX) > DRAG_THRESHOLD || Math.abs(e.clientY - d.originY) > DRAG_THRESHOLD
+      const moved = d.moved || far
+      if (moved && !d.moved) document.body.classList.add('is-dragging')
 
-        let over = d.over
-        if (moved) {
-          for (const [status, el] of columnRefs.current) {
-            const r = el.getBoundingClientRect()
-            if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-              over = status
-              break
-            }
+      let over = d.over
+      if (moved) {
+        for (const [status, el] of columnRefs.current) {
+          const r = el.getBoundingClientRect()
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            over = status
+            break
           }
         }
-        return { ...d, x: e.clientX, y: e.clientY, moved, over }
-      })
+      }
+      dragRef.current = { ...d, x: e.clientX, y: e.clientY, moved, over }
+      setDrag(dragRef.current)
     }
 
     const finish = (commit) => {
       document.body.classList.remove('is-dragging')
-      setDrag((d) => {
-        if (!d) return null
-        if (!d.moved) setDraft({ ...d.task })
-        else if (commit && d.over !== d.task.status) move(d.task, d.over)
-        return null
-      })
+      // Side effects stay out of the state updater: StrictMode runs updaters
+      // twice, which would send the status change to the API twice.
+      const d = dragRef.current
+      dragRef.current = null
+      setDrag(null)
+      if (!d) return
+      if (!d.moved) setDraft({ ...d.task })
+      else if (commit && d.over !== d.task.status) move(d.task, d.over)
     }
 
     const onUp = () => finish(true)
@@ -143,9 +147,12 @@ export default function Tasks() {
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
       window.removeEventListener('keydown', onKey)
-      document.body.classList.remove('is-dragging')
     }
   }, [drag, move])
+
+  // The effect above re-binds on every pointer move, so its cleanup must not
+  // clear the drag cursor; only leaving the page mid-drag should.
+  useEffect(() => () => document.body.classList.remove('is-dragging'), [])
 
   /* ---------------------------------- saving --------------------------------- */
 

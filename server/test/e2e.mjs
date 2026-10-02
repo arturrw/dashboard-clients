@@ -1,4 +1,4 @@
-const API = 'http://localhost:4000/api'
+const API = (process.env.API_URL || 'http://localhost:4000') + '/api'
 let token = null
 let LID = 1
 const results = []
@@ -168,6 +168,14 @@ check('client card loads history', r.status === 200 && r.body.history.length >= 
   `${r.body?.history?.length} visits, ${r.body?.adjustments?.length} adjustments, ${r.body?.notes?.length} notes`)
 check('discount reason visible in history', r.body.adjustments.some((a) => a.discount_reason === 'Test discount'))
 check('cancel reason visible in history', r.body.adjustments.some((a) => a.cancel_reason === 'Guest called back to cancel'))
+
+// 17b. The card carries the same last-visit summary as the typeahead, so the
+//      booking dialog's guest panel reads the same in create and edit mode.
+r = await call('/clients/lookup?q=37126713408')
+const seeded = r.body[0]
+r = await call(`/clients/${seeded.id}`)
+check('client card includes last visit', Boolean(r.body.last_visit) && r.body.last_visit.day === seeded.last_visit?.day,
+  `${r.body.last_visit?.day} · ${r.body.last_visit?.services}`)
 
 // 18. Admin cannot touch owner-only reference data
 r = await call('/staff', { method: 'POST', body: { name: 'Sneaky' } })

@@ -55,12 +55,19 @@ export async function api(path, { method = 'GET', body, locationId, signal } = {
     body: body === undefined ? undefined : JSON.stringify(body)
   })
 
-  if (res.status === 401) {
-    onUnauthorized.handler?.()
-    throw new ApiError(401, { error: 'unauthorized' })
-  }
   const text = await res.text()
-  const payload = text ? JSON.parse(text) : null
+  let payload = null
+  try {
+    payload = text ? JSON.parse(text) : null
+  } catch {
+    // A proxy error page (nginx 502 etc.) is not JSON; keep the status only.
+  }
+  if (res.status === 401) {
+    // Only a rejected session means "signed out" — a failed login attempt
+    // carries no token and must keep its own error code (bad_credentials).
+    if (headers.authorization) onUnauthorized.handler?.()
+    throw new ApiError(401, payload ?? { error: 'unauthorized' })
+  }
   if (!res.ok) throw new ApiError(res.status, payload)
   return payload
 }
