@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.git
+graphify-out
+playwright-report
+test-results
+e2e
+docs
+.env

@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (see .env.example)}
+      SEED_ON_START: ${SEED_ON_START:-auto}
+      TZ: ${TZ:-Europe/Riga}
+    volumes:
+      - forno-data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  forno-data:
