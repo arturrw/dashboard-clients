@@ -7,12 +7,19 @@ export const clientsRouter = Router()
 /** Digits only, so "+371 20 123 456" and "37120123456" find the same person. */
 export const normalizePhone = (raw) => String(raw || '').replace(/[^\d]/g, '')
 
+/**
+ * `day` holds the venue's local calendar date, so "today" must be local too —
+ * plain date('now') is UTC and would call tonight's bookings "upcoming" until
+ * 02:00/03:00 in Rīga.
+ */
+const TODAY = "date('now', 'localtime')"
+
 const withStats = (c) => {
   if (!c) return null
   const stats = get(
     `SELECT COUNT(*) AS visits,
             SUM(CASE WHEN status = 'completed' THEN total_sum ELSE 0 END) AS spend,
-            MAX(CASE WHEN status NOT IN ('cancelled','no_show') AND day <= date('now') THEN day END) AS last_day,
+            MAX(CASE WHEN status NOT IN ('cancelled','no_show') AND day <= ${TODAY} THEN day END) AS last_day,
             SUM(CASE WHEN status = 'no_show' THEN 1 ELSE 0 END) AS no_shows,
             SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancels
        FROM bookings WHERE client_id = ?`,
@@ -29,6 +36,24 @@ const withStats = (c) => {
   }
 }
 
+// "Previous service" must mean the last visit that already happened — a
+// reservation booked for next month is not history yet.
+const visitSelect = `
+  SELECT b.day, b.start_min, b.status, s.name AS staff_name, l.name AS location_name,
+         (SELECT GROUP_CONCAT(name, ', ') FROM booking_services WHERE booking_id = b.id) AS services
+    FROM bookings b
+    LEFT JOIN staff s ON s.id = b.staff_id
+    LEFT JOIN locations l ON l.id = b.location_id
+   WHERE b.client_id = ? AND b.status NOT IN ('cancelled')`
+
+/** Stats plus the last and next visit — the shape the booking dialog's guest panel reads. */
+const withVisits = (c) =>
+  c && {
+    ...withStats(c),
+    last_visit: get(`${visitSelect} AND b.day <= ${TODAY} ORDER BY b.day DESC, b.start_min DESC LIMIT 1`, c.id) ?? null,
+    next_visit: get(`${visitSelect} AND b.day > ${TODAY} ORDER BY b.day ASC, b.start_min ASC LIMIT 1`, c.id) ?? null
+  }
+
 /** Typeahead behind the phone field. Matches on digits or on name. */
 clientsRouter.get('/lookup', (req, res) => {
   const q = String(req.query.q || '').trim()
@@ -37,22 +62,7 @@ clientsRouter.get('/lookup', (req, res) => {
   const rows = digits
     ? all('SELECT * FROM clients WHERE phone LIKE ? ORDER BY name LIMIT 8', `%${digits}%`)
     : all('SELECT * FROM clients WHERE name LIKE ? ORDER BY name LIMIT 8', `%${q}%`)
-  res.json(
-    rows.map((c) => {
-      // "Previous service" must mean the last visit that already happened —
-      // a reservation booked for next month is not history yet.
-      const visitSelect = `
-        SELECT b.day, b.start_min, b.status, s.name AS staff_name, l.name AS location_name,
-               (SELECT GROUP_CONCAT(name, ', ') FROM booking_services WHERE booking_id = b.id) AS services
-          FROM bookings b
-          LEFT JOIN staff s ON s.id = b.staff_id
-          LEFT JOIN locations l ON l.id = b.location_id
-         WHERE b.client_id = ? AND b.status NOT IN ('cancelled')`
-      const last = get(`${visitSelect} AND b.day <= date('now') ORDER BY b.day DESC, b.start_min DESC LIMIT 1`, c.id)
-      const next = get(`${visitSelect} AND b.day > date('now') ORDER BY b.day ASC, b.start_min ASC LIMIT 1`, c.id)
-      return { ...withStats(c), last_visit: last ?? null, next_visit: next ?? null }
-    })
-  )
+  res.json(rows.map(withVisits))
 })
 
 clientsRouter.get('/', (req, res) => {
@@ -64,7 +74,7 @@ clientsRouter.get('/', (req, res) => {
 })
 
 clientsRouter.get('/:id', (req, res) => {
-  const client = withStats(get('SELECT * FROM clients WHERE id = ?', req.params.id))
+  const client = withVisits(get('SELECT * FROM clients WHERE id = ?', req.params.id))
   if (!client) return res.status(404).json({ error: 'not_found' })
   const history = all(
     `SELECT b.*, l.name AS location_name, r.name AS resource_name, s.name AS staff_name,
