@@ -52,6 +52,13 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
   const [linkedClient, setLinkedClient] = useState(null)
   const [lookupBusy, setLookupBusy] = useState(false)
 
+  /**
+   * Fields the admin has typed into since the dialog opened. The phone lookup
+   * answers ~220 ms after the last keystroke; by then the admin may already
+   * have typed a name, and an automatic match must not overwrite it.
+   */
+  const typed = useRef({ name: false, permanent_note: false })
+
   const isEdit = Boolean(bookingId)
   const set = useCallback((patchObj) => setForm((f) => ({ ...f, ...patchObj })), [])
 
@@ -59,6 +66,7 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
 
   useEffect(() => {
     if (!open) return
+    typed.current = { name: false, permanent_note: false }
     setShowDetails(false)
     setMatchOpen(false)
     setMatches([])
@@ -146,14 +154,17 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
   }, [linkedClient])
 
   const chooseClient = useCallback(
-    (c, { fillPhone = true } = {}) => {
+    (c, { auto = false } = {}) => {
       setLinkedClient(c)
       setMatchOpen(false)
+      // Picking from the list is an explicit choice and fills everything; an
+      // automatic exact match only fills what the admin has not typed.
       set({
-        ...(fillPhone ? { phone: c.phone } : {}),
-        name: c.name,
-        permanent_note: c.permanent_note ?? ''
+        ...(auto ? {} : { phone: c.phone }),
+        ...(auto && typed.current.name ? {} : { name: c.name }),
+        ...(auto && typed.current.permanent_note ? {} : { permanent_note: c.permanent_note ?? '' })
       })
+      if (!auto) typed.current = { name: false, permanent_note: false }
     },
     [set]
   )
@@ -175,7 +186,7 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
           if (exact) {
             // A complete, already-known number is unambiguous: fill the card in
             // rather than making the admin confirm their own guest again.
-            if (linkedRef.current !== exact.id) chooseClient(exact, { fillPhone: false })
+            if (linkedRef.current !== exact.id) chooseClient(exact, { auto: true })
             else setMatchOpen(false)
           } else {
             setMatchOpen(rows.length > 0)
@@ -407,7 +418,13 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
                   </div>
 
                   <Field label={t('bk.name')}>
-                    <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
+                    <Input
+                      value={form.name}
+                      onChange={(e) => {
+                        typed.current.name = true
+                        set({ name: e.target.value })
+                      }}
+                    />
                   </Field>
                 </div>
 
@@ -692,7 +709,10 @@ export default function BookingDialog({ open, onOpenChange, draft, bookingId, co
                 <Field label={t('bk.permanent')} hint={t('bk.permanentHint')}>
                   <Textarea
                     value={form.permanent_note}
-                    onChange={(e) => set({ permanent_note: e.target.value })}
+                    onChange={(e) => {
+                      typed.current.permanent_note = true
+                      set({ permanent_note: e.target.value })
+                    }}
                     className="border-clay/40 bg-clay-soft/40"
                   />
                 </Field>
