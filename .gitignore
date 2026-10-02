@@ -4,3 +4,8 @@ dist/
 *.db-journal
 .env
 .DS_Store
+*.db-shm
+*.db-wal
+playwright-report/
+test-results/
+graphify-out/
