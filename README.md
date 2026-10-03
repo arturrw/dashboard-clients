@@ -175,3 +175,7 @@ scripts/      screenshot generator
 ```
 
 The full breakdown is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#source-layout).
+
+## License
+
+[MIT](LICENSE)
